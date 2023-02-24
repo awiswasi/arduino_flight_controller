@@ -1,4 +1,4 @@
-# STM Flight Controller
+# Arduino Flight Controller
 
 This flight controller sets up the motor control pins as outputs and initialize the MPU6050 gyroscope and accelerometer sensor and the Adafruit BMP280 barometric pressure sensor. The MPU6050 is calibrated and its offsets are stored, and the BMP280 is started.
 
