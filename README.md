@@ -13,6 +13,8 @@ The code includes an emergencyShutdown() function with the following features:
 
 # Features to implement
 
+~~- Add remote control functionality to use with RC transmitters and 2.4 GHz receivers.~~
+
 - Add an accelerometer-based altitude hold feature: The current code uses a barometer to measure altitude, which can be affected by changes in air pressure. Using an accelerometer to measure altitude instead can provide more accurate and responsive altitude control.
 
 - Implement a failsafe mode: In case of communication loss with the RC controller or other malfunctions, it's important to have a failsafe mode that will safely bring the drone back to the ground. This could involve automatically descending the drone or returning it to a home location.
