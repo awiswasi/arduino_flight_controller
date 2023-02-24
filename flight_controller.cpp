@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <MPU6050.h>
 #include <Adafruit_BMP280.h>
+#include <Servo.h>
 
 // define pins for motor control
 const int motor1Pin = 3;
@@ -25,6 +26,10 @@ float setpointRoll = 0.0, setpointPitch = 0.0, setpointYaw = 0.0, setpointAltitu
 float previousErrorRoll = 0.0, previousErrorPitch = 0.0, previousErrorYaw = 0.0, previousErrorAltitude = 0.0;
 float integralRoll = 0.0, integralPitch = 0.0, integralYaw = 0.0, integralAltitude = 0.0;
 
+// define variables for RC control
+Servo channel1, channel2, channel3, channel4;
+int channel1Value, channel2Value, channel3Value, channel4Value;
+
 void setup() {
   // set up motor control pins as outputs
   pinMode(motor1Pin, OUTPUT);
@@ -44,6 +49,12 @@ void setup() {
 
   // set up BMP280 sensor
   bmp.begin();
+
+  // set up RC control
+  channel1.attach(2);
+  channel2.attach(3);
+  channel3.attach(4);
+  channel4.attach(5);
 }
 
 void loop() {
@@ -54,16 +65,23 @@ void loop() {
   yaw = mpu.getYaw();
   altitude = bmp.readAltitude();
 
-  // check for low battery voltage
-  float batteryVoltage = analogRead(A0) * 0.00488; // convert analog reading to voltage
-  if (batteryVoltage < 10.0) {
-    emergencyShutdown();
-  }
+  // read RC control signals
+  channel1Value = channel1.readMicroseconds();
+  channel2Value = channel2.readMicroseconds();
+  channel3Value = channel3.readMicroseconds();
+  channel4Value = channel4.readMicroseconds();
 
-  // check for excessive pitch or roll angles
-  if (abs(roll) > 45.0 || abs(pitch) > 45.0) {
-    emergencyShutdown();
-  }
+  // map RC control signals to control signals for the drone flight controller
+  float rollSignal = map(channel1Value, 1000, 2000, -255, 255);
+  float pitchSignal = map(channel2Value, 1000, 2000, -255, 255);
+  float yawSignal = map(channel3Value, 1000, 2000, -255, 255);
+  float altitudeSignal = map(channel4Value, 1000, 2000, 0, 255);
+
+  // convert control signals to setpoints for the PID controller
+  setpointRoll = rollSignal;
+  setpointPitch = pitchSignal;
+  setpointYaw = yawSignal;
+  setpointAltitude = altitudeSignal;
 
   // calculate PID control signals for pitch, roll, yaw, and altitude
   float errorRoll = setpointRoll - roll;
@@ -78,11 +96,11 @@ void loop() {
   float derivativePitch = errorPitch - previousErrorPitch;
   float derivativeYaw = errorYaw - previousErrorYaw;
   float derivativeAltitude = errorAltitude - previousErrorAltitude;
-  float pitchSignal = kp * errorPitch + ki * integralPitch + kd * derivativePitch;
-  float rollSignal = kp * errorRoll + ki * integralRoll + kd * derivativeRoll;
-  float yawSignal = kp * errorYaw + ki * integralYaw + kd * derivativeYaw;
-  float altitudeSignal = kp * errorAltitude + ki * integralAltitude + kd * derivativeAltitude;
-  
+  pitchSignal = kp * errorPitch + ki * integralPitch + kd * derivativePitch;
+  rollSignal = kp * errorRoll + ki * integralRoll + kd * derivativeRoll;
+  yawSignal = kp * errorYaw + ki * integralYaw + kd * derivativeYaw;
+  altitudeSignal = kp * errorAltitude + ki * integralAltitude + kd * derivativeAltitude;
+
   // check for excessive PID control signals
   if (abs(pitchSignal) > 255.0 || abs(rollSignal) > 255.0 || abs(yawSignal) > 255.0 || abs(altitudeSignal) > 255.0) {
     emergencyShutdown();
